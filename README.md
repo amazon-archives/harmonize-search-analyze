@@ -146,9 +146,9 @@ JavaScript and CSS files which can be added to your web application.
 Please note that moving it to a
 different web server may require configuring
 [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS)
-and changing the webpack configuration in the
-[webpack.config.js](services/webapp/webpack.config.js) file to point to the
-right path.
+and changing the `publicPath` variable in the webpack configuration file
+([webpack.config.js](services/webapp/webpack.config.js)) to point
+it to the right URL path in the web server.
 
 ## Run the Web Application on a Development Workstation
 
