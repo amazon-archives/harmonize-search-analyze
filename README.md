@@ -1,6 +1,6 @@
 # Building a Dynamic Search Dashboard for Loosely Coupled Data Sets on AWS
 
-This repository contains the source artifacts of the
+This repository contains the source code of the
 [Harmonize, Search, and Analyze Loosely Coupled Data Sets on
 AWS](https://aws.amazon.com/blogs/big-data/harmonize-search-and-analyze-loosely-coupled-datasets-on-aws/)
 blog post. It is a set of CloudFormation templates and tools
@@ -8,8 +8,9 @@ for deploying a data harmonization and search application
 which uses sample data from the [Public Safety Open Data
 Portal](https://publicsafetydataportal.org/all-data/).
 
-You can launch this application using this CloudFormation
-stack in the US East (N. Virginia) Region in your account:
+Use this CloudFormation button to launch your own copy of the
+sample application in the us-east-1 (N. Virginia) AWS region:
+
 [![cloudformation-launch-stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=datasearch-blog&templateURL=https://s3.amazonaws.com/aws-bigdata-blog/artifacts/harmonize-search-analyze/infrastructure/master.yaml)
 
 ## Overview
