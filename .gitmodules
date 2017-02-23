@@ -1,0 +1,3 @@
+[submodule "build/ecs-refarch-cloudformation"]
+	path = build/ecs-refarch-cloudformation
+	url = https://github.com/awslabs/ecs-refarch-cloudformation.git
