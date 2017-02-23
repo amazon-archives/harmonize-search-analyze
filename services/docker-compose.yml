@@ -25,7 +25,8 @@ services:
     restart: always
     command: [npm, run, dev]
     volumes:
-      - "${VOLUME_DIR}:/usr/src/app"
+      - "${WEBAPP_DIR}/src:/usr/src/app/src"
+      - "${WEBAPP_DIR}/dist:/usr/src/app/dist"
 
   proxy:
     image: "${ENV_NAME}/nginx:${ENV_VERSION}"

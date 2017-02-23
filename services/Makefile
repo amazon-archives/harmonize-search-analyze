@@ -24,8 +24,8 @@ export ES_ENDPOINT ?= $(shell aws cloudformation list-exports \
 
 export ENV_NAME ENV_VERSION LOCAL_PROXY_PORT
 
-# web app dist dir - volume mounted for local dev
-export VOLUME_DIR ?= $(CURDIR)/webapp
+# web app src/dist dirs - used as docker volumes mounted for local dev
+export WEBAPP_DIR ?= $(CURDIR)/webapp
 
 build-local: ./docker-compose.yml $(CONFIG_ENV)
 	@echo "[INFO] Building local images using docker-compose"
@@ -35,9 +35,10 @@ build-local: ./docker-compose.yml $(CONFIG_ENV)
 up: build-local
 	@echo "[INFO] Running environment locally using docker-compose"
 	@echo "[INFO] NGINX proxy on localhost port: [$(LOCAL_PROXY_PORT)]"
+	@echo "[INFO] using aws cli profile: [$(AWS_DEFAULT_PROFILE)]"
 	@echo "[INFO] aws-es-kibana proxy using access key: [$(AWS_ACCESS_KEY_ID)]"
 	@echo "[INFO] pointing to Elasticsearch endpoint: [$(ES_ENDPOINT)]"
-	@echo "[INFO] mounting volume: [$(VOLUME_DIR)] on proxy html dir"
+	@echo "[INFO] using webapp directory for docker volumes: [$(WEBAPP_DIR)]"
 	@-docker-compose up
 .PHONY: up
 

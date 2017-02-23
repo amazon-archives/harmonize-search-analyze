@@ -143,7 +143,8 @@ Please note that moving it to a
 different web server may require configuring
 [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS)
 and changing the webpack configuration in the
-[webpack.config.js](services/webapp/webpack.config.js) file.
+[webpack.config.js](services/webapp/webpack.config.js) file to point to the
+right path.
 
 ## Run the Web Application on a Development Workstation
 
@@ -167,9 +168,9 @@ This environment runs the web application using
 from the *webapp* container. It mounts the
 *webapp* source directory from the host to allow
 [hot-module-replacement](https://webpack.github.io/docs/hot-module-replacement.html).
-Depending on your Docker configuration, you may need to set the
-`VOLUME_DIR` environment variable to point to the source directory that
-will be mounted in the container.
+Depending on your Docker configuration, you may need to configure Docker
+so that the `webapp` directory is available to be mounted by containers
+and point the `WEBAPP_DIR` environment variable to the directory.
 
 To run the discovery web application on a workstation, issue the
 following commands:
@@ -189,7 +190,7 @@ Resources](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/templat
 to facilitate cleaning up the resources.
 
 The environment retains the EMR logs S3 bucket in case you need
-to troubleshoot it. You should manually remove this bucket
-if you don't want to keep this data. The name of this bucket is:
-datasearch-blog-jupyterspark-\<ID\> (assuming default stack name was
-used).
+to troubleshoot it. You should manually remove this bucket if
+you don't want to keep this data. The name of this bucket is:
+`datasearch-blog-jupyterspark-\<ID\>` (assuming default stack name
+was used).
