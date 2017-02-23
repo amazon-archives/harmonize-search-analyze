@@ -2,7 +2,7 @@
 
 This repository contains the artifacts of the
 [Harmonize, Search, and Analyze Loosely Coupled Data Sets on
-AWS](https://aws.amazon.com/blogs/big-data/harmonize-search-and-analyze-loosely-coupled-data-sets-on-aws/)
+AWS](https://aws.amazon.com/blogs/big-data/harmonize-search-and-analyze-loosely-coupled-datasets-on-aws/)
 blog post. It is a set of CloudFormation templates and tools
 for deploying a data harmonization and search application
 which uses uses sample data from the [Public Safety Open Data
@@ -120,8 +120,10 @@ the artifacts and upload the files into your S3 bucket. It uses the
 files to your s3 bucket, issue the following commands (from the root of
 the repository):
 
-    $ cd build
-    $ make upload # requires properly configured aws cli
+```shell
+$ cd build
+$ make upload # requires properly configured aws cli
+```
 
 ## Build a Stand-Alone Version of the Web Application
 
@@ -130,9 +132,11 @@ be built and packaged so that it can be deployed separately in a different
 web server. The application build environment and dependecies are managed
 using [npm](https://www.npmjs.com/). Here are the steps to build it:
 
-    $ cd services/webapp
-    $ npm install
-    $ npm build
+```shell
+$ cd services/webapp
+$ npm install
+$ npm build
+```
 
 The application is built and bundled using
 [webpack](https://webpack.github.io/). The output files of the build
@@ -175,8 +179,10 @@ and point the `WEBAPP_DIR` environment variable to the directory.
 To run the discovery web application on a workstation, issue the
 following commands:
 
+```shell
     $ cd services
     $ make up
+```
 
 ## Cleanup the CloudFormation stacks?
 
