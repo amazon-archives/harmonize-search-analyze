@@ -1,15 +1,15 @@
 # Building a Dynamic Search Dashboard for Loosely Coupled Data Sets on AWS
 
-This repository contains the artifacts of the
+This repository contains the source artifacts of the
 [Harmonize, Search, and Analyze Loosely Coupled Data Sets on
 AWS](https://aws.amazon.com/blogs/big-data/harmonize-search-and-analyze-loosely-coupled-datasets-on-aws/)
 blog post. It is a set of CloudFormation templates and tools
 for deploying a data harmonization and search application
-which uses uses sample data from the [Public Safety Open Data
+which uses sample data from the [Public Safety Open Data
 Portal](https://publicsafetydataportal.org/all-data/).
 
-You can launch this CloudFormation stack in the US East (N. Virginia)
-Region in your account:
+You can launch this application using this CloudFormation
+stack in the US East (N. Virginia) Region in your account:
 [![cloudformation-launch-stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=datasearch-blog&templateURL=https://s3.amazonaws.com/aws-bigdata-blog/artifacts/harmonize-search-analyze/infrastructure/master.yaml)
 
 ## Overview
@@ -129,8 +129,8 @@ $ make upload # requires properly configured aws cli
 
 The front-end part of the web application (html, JavaScript and css) can
 be built and packaged so that it can be deployed separately in a different
-web server. The application build environment and dependecies are managed
-using [npm](https://www.npmjs.com/). Here are the steps to build it:
+web server. The application build environment and dependencies are managed
+using [npm](https://www.npmjs.com/). Here are the commands to build it:
 
 ```shell
 $ cd services/webapp
@@ -198,5 +198,5 @@ to facilitate cleaning up the resources.
 The environment retains the EMR logs S3 bucket in case you need
 to troubleshoot it. You should manually remove this bucket if
 you don't want to keep this data. The name of this bucket is:
-`datasearch-blog-jupyterspark-\<ID\>` (assuming default stack name
+`datasearch-blog-jupyterspark-<ID>` (assuming default stack name
 was used).
