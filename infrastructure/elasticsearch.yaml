@@ -1,0 +1,80 @@
+Description: >
+  This template deploys an Elasticsearch Cluster that enforces AWS
+  authentication. By default, it deploys on t2 instances.
+
+Parameters:
+
+  EnvironmentName:
+    Description: >
+        An environment name that will be prefixed to resource names.
+        Should be unique per region.
+    Type: String
+
+  InstanceType:
+    Description: Instance type used for the Elasticsearch cluster
+    Type: String
+    Default: t2.small.elasticsearch
+
+  DedicatedMasterCount:
+    Description: Number of master nodes in the cluster
+    Type: Number
+    Default: 2
+
+  InstanceCount:
+    Description: Number of nodes in the cluster
+    Type: Number
+    Default: 2
+
+  VolumeSize:
+    Description: Size of EBS volume for each node in (GB)
+    Type: Number
+    Default: 10
+
+Resources:
+  ElasticsearchDomain:
+    Type: 'AWS::Elasticsearch::Domain'
+    Properties:
+      # The resource policy allows access to credentials the same AWS account.
+      # To further restrict, use a more granular policy.
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: 'EnforceAuth'
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Effect: 'Allow'
+          Action: 'es:*'
+          Resource: '*'
+      ElasticsearchClusterConfig:
+        DedicatedMasterEnabled: true
+        DedicatedMasterCount: !Ref DedicatedMasterCount
+        DedicatedMasterType: !Ref InstanceType
+        InstanceCount: !Ref InstanceCount
+        InstanceType: !Ref InstanceType
+        ZoneAwarenessEnabled: 'true'
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: !Ref VolumeSize
+        VolumeType: 'gp2'
+      ElasticsearchVersion: '5.1'
+      SnapshotOptions:
+        AutomatedSnapshotStartHour: '0'
+      AdvancedOptions:
+        rest.action.multi.allow_explicit_index: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName} Elasticsearch Cluster"
+
+Outputs:
+
+  ElasticsearchDomainArn:
+    Description: Elasticsearch Cluster ARN
+    Value: !GetAtt ElasticsearchDomain.DomainArn
+    Export:
+      Name: !Sub "${EnvironmentName}-ElasticsearchDomainArn"
+
+  ElasticsearchDomainEndpoint:
+    Description: Elasticsearch Cluster Endpoint
+    Value: !GetAtt ElasticsearchDomain.DomainEndpoint
+    Export:
+      Name: !Sub "${EnvironmentName}-ElasticsearchDomainEndpoint"

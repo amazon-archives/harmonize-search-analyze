@@ -1,0 +1,393 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Provision an EMR/Spark cluster with Jupyter Notebooks
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: EMR Options
+      Parameters:
+        - JupyterPassword
+        - EC2KeyName
+        - VPC
+        - Subnet
+        - CoreNodeCount
+        - InstanceType
+        - AccessFromCIDRBlock
+        - JupyterPort
+        - BootstrapBucketPath
+    - Label:
+        default: Elasticsearch
+      Parameters:
+        - EsArn
+        - EsEndpoint
+    - Label:
+        default: Tags
+      Parameters:
+        - NameTag
+        - OwnerTag
+        - PurposeTag
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: >
+      An environment name that will be prefixed to resource names including
+      exported values. Should be unique per region.
+  JupyterPassword:
+    AllowedPattern: >-
+      [a-zA-Z0-9!^*_+-]*
+    ConstraintDescription: >
+      Can only contain alphanumeric characters or the following
+      special characters !^*-_+, between 8 and 28 characters
+    Description: Password Jupyter Notebook login
+    MaxLength: 28
+    MinLength: 8
+    NoEcho: true
+    Type: String
+  EC2KeyName:
+    Description: SSH key pair to use for EMR node login
+    Type: AWS::EC2::KeyPair::KeyName
+  VPC:
+    Description: VPC for EMR nodes.
+    Type: AWS::EC2::VPC::Id
+  Subnet:
+    Description: Subnet for EMR nodes, from the VPC selected above
+    Type: AWS::EC2::Subnet::Id
+  CoreNodeCount:
+    Description: Number of core nodes to provision (1-20)
+    Type: Number
+    MinValue: '1'
+    MaxValue: '20'
+    Default: '2'
+  InstanceType:
+    Type: String
+    Default: m4.2xlarge
+    AllowedValues:
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+    Description: EMR node ec2 instance type - you can add more types by expanding
+      on this list.
+  OwnerTag:
+    Type: String
+    Default: Owner
+    MinLength: 1
+    Description: Your name - used to tag the cluster
+  PurposeTag:
+    Type: String
+    MinLength: 1
+    Default: Harmonization
+    Description: Purpose - used to tag the cluster
+  NameTag:
+    Type: String
+    MinLength: 1
+    Default: datasearch-blog
+    Description: Environment name of the cluster
+  AccessFromCIDRBlock:
+    Type: String
+    MinLength: 9
+    Default: 0.0.0.0/0
+    Description: Restrict WebUI access to specified address or range - default 'anywhere'
+  JupyterPort:
+    Type: Number
+    Default: 8192
+    Description: Port for Jupyter service to listen on
+  BootstrapBucketPath:
+    Type: String
+    MinLength: 1
+    Default: aws-bigdata-blog/artifacts/harmonize-search-analyze
+    Description: S3 URI prefix for EMR boostrap scripts
+  EsEndpoint:
+    Description: Endpoint for Amazon Elasticsearch service.
+    Type: String
+    MinLength: 10
+  EsArn:
+    Description: ARN of Amazon Elasticsearch Service.
+    Type: String
+    MinLength: 10
+Resources:
+  EMRBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+  AllowWebUIs:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Jupyter
+      VpcId:
+        Ref: VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: !Ref JupyterPort
+        ToPort: !Ref JupyterPort
+        CidrIp:
+          Ref: AccessFromCIDRBlock
+  rEMREC2InstanceProfile:
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: rEMREC2Role
+    Type: AWS::IAM::InstanceProfile
+  rEMREC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role
+      Policies:
+      - PolicyName: ES-for-EMR
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Resource: !Sub "${EsArn}/*"
+            Action:
+            - es:*
+            Effect: Allow
+      - PolicyName: Athena-for-EMR
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Resource: "*"
+            Action:
+            - athena:*
+            Effect: Allow
+  rEMRServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - elasticmapreduce.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole
+  SparkCluster:
+    DependsOn: EMRCleanup
+    Type: AWS::EMR::Cluster
+    Properties:
+      Applications:
+      - Name: Hadoop
+      - Name: Hive
+      - Name: Spark
+      - Name: Ganglia
+      BootstrapActions:
+      - Name: Install-ES-Proxy
+        ScriptBootstrapAction:
+          Path: !Sub "s3://${BootstrapBucketPath}/infrastructure/emr-bootstrap/emr_install_es_proxy.sh"
+          Args:
+          - "-e"
+          - Ref: EsEndpoint
+      - Name: Copy-EMR-Content
+        ScriptBootstrapAction:
+          Path: file:/usr/bin/aws
+          Args:
+          - "s3"
+          - "cp"
+          - !Sub "s3://${BootstrapBucketPath}/notebooks/"
+          - "/home/hadoop/datasearch-blog"
+          - "--recursive"
+      - Name: Install-Kibana-Index
+        ScriptBootstrapAction:
+          Path: !Sub "s3://${BootstrapBucketPath}/infrastructure/emr-bootstrap/emr_load_kibana_index.sh"
+      - Name: Copy-Athena-JDBC-Jar
+        ScriptBootstrapAction:
+          Path: file:/usr/bin/sudo
+          Args:
+          - "aws"
+          - "s3"
+          - "cp"
+          - "s3://athena-downloads/drivers/AthenaJDBC41-1.0.0.jar"
+          - "/usr/lib/athena/AthenaJDBC41-1.0.0.jar"
+      - Name: Install-Python-Jupyter
+        ScriptBootstrapAction:
+          Path: s3://aws-bigdata-blog/artifacts/aws-blog-emr-jupyter/install-jupyter-emr5.sh
+          Args:
+          - "--toree"
+          - "--ds-packages"
+          - "--python-packages"
+          - "ggplot pybrain JayDeBeApi"
+          - "--password"
+          - Ref: JupyterPassword
+          - "--port"
+          - Ref: JupyterPort
+          - "--ssl"
+          - "--cached-install"
+          - "--spark-opts"
+          - "--packages com.databricks:spark-csv_2.11:1.5.0,com.databricks:spark-avro_2.11:3.0.0,org.elasticsearch:elasticsearch-spark-20_2.11:5.1.2"
+      Configurations:
+      - Classification: emrfs-site
+        ConfigurationProperties:
+          fs.s3.enableServerSideEncryption: 'true'
+          fs.s3.canned.acl: BucketOwnerFullControl
+        Configurations: []
+      - Classification: spark-env
+        ConfigurationProperties: {}
+        Configurations:
+        - Classification: export
+          ConfigurationProperties:
+            S3_SCRATCH_BUCKET: !Ref EMRBucket
+            CLASSPATH: "/usr/lib/athena/AthenaJDBC41-1.0.0.jar:/usr/lib/hadoop-mapreduce/aws-java-sdk-core-1.10.75.1.jar:/usr/lib/hadoop-mapreduce/jackson-databind-2.6.5.jar:/usr/lib/hadoop-mapreduce/jackson-core-2.6.5.jar:/usr/lib/hadoop/client/commons-logging.jar:/usr/lib/hadoop-mapreduce/jackson-annotations-2.6.5.jar:/usr/lib/hadoop-mapreduce/joda-time-2.8.1.jar"
+      Instances:
+        AdditionalMasterSecurityGroups:
+        - Fn::GetAtt:
+          - AllowWebUIs
+          - GroupId
+        Ec2KeyName:
+          Ref: EC2KeyName
+        Ec2SubnetId:
+          Ref: Subnet
+        MasterInstanceGroup:
+          InstanceCount: 1
+          InstanceType:
+            Ref: InstanceType
+        CoreInstanceGroup:
+          InstanceCount:
+            Ref: CoreNodeCount
+          InstanceType:
+            Ref: InstanceType
+      Name: spark-jupyter
+      JobFlowRole:
+        Ref: rEMREC2InstanceProfile
+      ServiceRole:
+        Ref: rEMRServiceRole
+      ReleaseLabel: emr-5.3.1
+      LogUri: !Sub "s3://${EMRBucket}"
+      Tags:
+      - Key: Name
+        Value: !Sub "${NameTag}-jupyter-spark"
+      - Key: Owner
+        Value:
+          Ref: OwnerTag
+      - Key: Purpose
+        Value:
+          Ref: PurposeTag
+  EMRCleanup:
+    Type: Custom::EMRCleanup
+    Properties:
+      ServiceToken: !GetAtt EMRCleanupFunction.Arn
+  EMRCleanupFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt EMRCleanupExecutionRole.Arn
+      Runtime: python2.7
+      Timeout: 300
+      Code:
+        ZipFile: !Sub |
+            from __future__ import print_function
+            import json
+            import boto3
+            import cfnresponse
+            import time
+            def handler(event, context):
+                print(json.dumps(event))
+                if (event["RequestType"] == "Delete"):
+                    try:
+                        deleteSecurityGroups("${VPC}")
+                    except Exception as e:
+                        print("Exception thrown: %s" % str(e))
+                        pass
+                else:
+                    print("RequestType %s, nothing to do" % event["RequestType"])
+                time.sleep(30)  # pause for CloudWatch logs
+                print('Done')
+                responseData={"Data":"OK"}
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+            def deleteSecurityGroups(vpcid):
+                time.sleep(30)  # delay to avoid dependency race condition
+                ec2 = boto3.resource('ec2')
+                vpc = ec2.Vpc(vpcid)
+                # Fist, delete EMR Default VPC Security Group Rules
+                for sg in vpc.security_groups.all():
+                   if "ElasticMapReduce" not in sg.group_name:
+                       continue
+                   print("Deleting rules for SG: " + str(sg))
+                   for rule in sg.ip_permissions:
+                       try:
+                           sg.revoke_ingress(
+                               IpPermissions=[{
+                                   "IpProtocol":rule["IpProtocol"],
+                                   "FromPort":rule["FromPort"],
+                                   "ToPort":rule["ToPort"],
+                                   "UserIdGroupPairs":rule["UserIdGroupPairs"]}]
+                               )
+                       except Exception as e:
+                           print(str(e))
+                # Now, delete the VPC Security Groups
+                for sg in vpc.security_groups.all():
+                   if "ElasticMapReduce" not in sg.group_name:
+                       continue
+                   print("Deleting SG: " + str(sg))
+                   try:
+                       sg.delete()
+                   except Exception as e:
+                       print(str(e))
+                       pass
+  EMRCleanupExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: LogsForLambda
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource:
+                - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
+                - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*"
+      - PolicyName: EC2DescribeDeleleRevokeSg
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - ec2:Describe*
+                - ec2:DeleteSecurityGroup
+                - ec2:RevokeSecurityGroupIngress
+              Resource: '*'
+              Condition:
+                ArnEqualsIfExists:
+                  ec2:Vpc: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${VPC}"
+
+Outputs:
+  JupyterURL:
+    Description: Open Jupyter on your new PySpark/EMR cluster
+    Value: !Sub "https://${SparkCluster.MasterPublicDNS}:${JupyterPort}"
+  EMRBucket:
+    Description: EMR Scratch data and Logs bucket
+    Value: !Ref EMRBucket

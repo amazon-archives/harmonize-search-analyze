@@ -1,0 +1,44 @@
+{
+  "name": "filter-builder",
+  "version": "1.0.0",
+  "description": "Data driven Kibana Dashboard filter UI",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "start": "node server.js",
+    "dev": "webpack-dev-server --host 0.0.0.0 --port 8888 --content-base dist --inline --hot --watch-poll 5000"
+  },
+  "keywords": [
+    "Elasticsearch",
+    "Kibana",
+    "Filter"
+  ],
+  "author": "AWS",
+  "license": "Apache",
+  "dependencies": {
+    "backbone": "^1.3.3",
+    "bootstrap": "^3.3.7",
+    "bootstrap-3-typeahead": "^4.0.2",
+    "bootstrap-multiselect": "^0.9.13-1",
+    "bootstrap-slider": "^9.5.3",
+    "eonasdan-bootstrap-datetimepicker": "^4.17.43",
+    "express": "^4.14.0",
+    "express-winston": "^2.1.0",
+    "jquery": "^3.1.1",
+    "moment": "^2.17.1",
+    "underscore": "^1.8.3",
+    "winston": "^2.3.0"
+  },
+  "devDependencies": {
+    "css-loader": "^0.26.1",
+    "extract-text-webpack-plugin": "^1.0.1",
+    "file-loader": "^0.9.0",
+    "html-webpack-plugin": "^2.24.1",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.14.0",
+    "webpack-dev-server": "^1.16.2"
+  }
+}

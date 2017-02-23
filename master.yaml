@@ -1,0 +1,186 @@
+Description: |
+    Master datasearch CloudFormation template.
+    It deploys:
+        - Infrastructure per the ECS Reference Architecture:
+          https://github.com/awslabs/ecs-refarch-cloudformation
+        - ECR repositories to store Docker images
+        - ECS Service including Kibana, aws-es-proxy, Ngnix and webapp
+          containers
+        - A deployment pipeline using CodePipeline, CodeBuild and
+          CloudFormation for the ECS service
+        - Elasticsearch cluster with an resource policy
+          enforcing authentication
+        - EMR cluster with Jupyter notebooks
+
+Parameters:
+    EnvironmentName:
+        Description: >
+            An environment name that will be prefixed to resource names.
+            Must be unique per AWS region since it is used to export ouput
+            values of the stack.
+        Type: String
+        Default: datasearch-blog
+        MinLength: 2
+        MaxLength: 128
+        AllowedPattern: '(?:[a-z0-9]+(?:[a-z0-9._-]+))'
+        ConstraintDescription: >
+            Can only contain lower case alphanumeric characters in addition to
+            period, underscore, dash. Must start with an alphanumeric character.
+            This is is to conform with Docker image regristry name standard.
+
+    JupyterPassword:
+        Description: Password for Jupyter Notebook login in EMR Cluster
+        Type: String
+        AllowedPattern: >-
+            [a-zA-Z0-9!^*_+-]*
+        ConstraintDescription: >
+            Can only contain alphanumeric characters or the following special
+            characters !^*-_+, between 8 and 28 characters
+        MaxLength: 28
+        MinLength: 8
+        NoEcho: true
+
+    EC2KeyName:
+        Description: SSH key pair to use for EMR node login
+        Type: AWS::EC2::KeyPair::KeyName
+
+Mappings:
+    CustomVariables:
+        # sub-templates and other artifacts are hosted in this bucket
+        ArtifactBucket:
+            Value: aws-bigdata-blog
+        ArtifactPrefix:
+            Value: artifacts/harmonize-search-analyze
+        ArtifactSrcObject:
+            Value: src.zip
+
+Resources:
+
+    VPC:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub
+                - "https://s3.amazonaws.com/${Bucket}/${Path}/infrastructure/vpc.yaml"
+                - Bucket: !FindInMap [CustomVariables, ArtifactBucket, Value]
+                  Path: !FindInMap [CustomVariables, ArtifactPrefix, Value]
+            Parameters:
+                EnvironmentName:    !Ref EnvironmentName
+                VpcCIDR:            10.184.0.0/16
+                PublicSubnet1CIDR:  10.184.8.0/21
+                PublicSubnet2CIDR:  10.184.16.0/21
+                PrivateSubnet1CIDR: 10.184.24.0/21
+                PrivateSubnet2CIDR: 10.184.32.0/21
+
+    SecurityGroups:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub
+                - "https://s3.amazonaws.com/${Bucket}/${Path}/infrastructure/security-groups.yaml"
+                - Bucket: !FindInMap [CustomVariables, ArtifactBucket, Value]
+                  Path: !FindInMap [CustomVariables, ArtifactPrefix, Value]
+            Parameters:
+                EnvironmentName: !Ref AWS::StackName
+                VPC: !GetAtt VPC.Outputs.VPC
+
+    ALB:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub
+                - "https://s3.amazonaws.com/${Bucket}/${Path}/infrastructure/load-balancers.yaml"
+                - Bucket: !FindInMap [CustomVariables, ArtifactBucket, Value]
+                  Path: !FindInMap [CustomVariables, ArtifactPrefix, Value]
+            Parameters:
+                EnvironmentName: !Ref EnvironmentName
+                VPC: !GetAtt VPC.Outputs.VPC
+                Subnets: !GetAtt VPC.Outputs.PublicSubnets
+                SecurityGroup: !GetAtt SecurityGroups.Outputs.LoadBalancerSecurityGroup
+
+    ECS:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub
+                - "https://s3.amazonaws.com/${Bucket}/${Path}/infrastructure/ecs-cluster.yaml"
+                - Bucket: !FindInMap [CustomVariables, ArtifactBucket, Value]
+                  Path: !FindInMap [CustomVariables, ArtifactPrefix, Value]
+            Parameters:
+                EnvironmentName: !Ref EnvironmentName
+                InstanceType: t2.large
+                ClusterSize: 2
+                VPC: !GetAtt VPC.Outputs.VPC
+                SecurityGroup: !GetAtt SecurityGroups.Outputs.ECSHostSecurityGroup
+                Subnets: !GetAtt VPC.Outputs.PrivateSubnets
+
+    Elasticsearch:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub
+                - "https://s3.amazonaws.com/${Bucket}/${Path}/infrastructure/elasticsearch.yaml"
+                - Bucket: !FindInMap [CustomVariables, ArtifactBucket, Value]
+                  Path: !FindInMap [CustomVariables, ArtifactPrefix, Value]
+            Parameters:
+                EnvironmentName: !Ref EnvironmentName
+
+    Pipeline:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Sub
+                - "https://s3.amazonaws.com/${Bucket}/${Path}/infrastructure/pipeline.yaml"
+                - Bucket: !FindInMap [CustomVariables, ArtifactBucket, Value]
+                  Path: !FindInMap [CustomVariables, ArtifactPrefix, Value]
+            Parameters:
+                EnvironmentName: !Ref EnvironmentName
+                SourceBucket: !Sub
+                    - "${Bucket}"
+                    - {Bucket:
+                        !FindInMap [CustomVariables, ArtifactBucket, Value]}
+                SourceObject: !Sub
+                    - "${Path}/${Object}"
+                    - Path: !FindInMap [CustomVariables, ArtifactPrefix, Value]
+                      Object: !FindInMap [CustomVariables, ArtifactSrcObject, Value]
+                VPC: !GetAtt VPC.Outputs.VPC
+                Cluster: !GetAtt ECS.Outputs.Cluster
+                Listener: !GetAtt ALB.Outputs.Listener
+                EsEndpoint: !GetAtt Elasticsearch.Outputs.ElasticsearchDomainEndpoint
+                EsArn: !GetAtt Elasticsearch.Outputs.ElasticsearchDomainArn
+
+    # EMR Cluster with Jupyter Notebooks and Spark
+    JupyterSpark:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TimeoutInMinutes: 90
+            TemplateURL: !Sub
+                - "https://s3.amazonaws.com/${Bucket}/${Path}/infrastructure/jupyterspark.yaml"
+                - Bucket: !FindInMap [CustomVariables, ArtifactBucket, Value]
+                  Path: !FindInMap [CustomVariables, ArtifactPrefix, Value]
+            Parameters:
+                EnvironmentName: !Ref EnvironmentName
+                JupyterPassword: !Ref JupyterPassword
+                EC2KeyName: !Ref EC2KeyName
+                VPC: !GetAtt VPC.Outputs.VPC
+                Subnet: !GetAtt VPC.Outputs.PublicSubnet1
+                EsArn: !GetAtt Elasticsearch.Outputs.ElasticsearchDomainArn
+                EsEndpoint:
+                    !GetAtt Elasticsearch.Outputs.ElasticsearchDomainEndpoint
+                BootstrapBucketPath: !Sub
+                    - "${Bucket}/${Path}"
+                    - Bucket: !FindInMap [CustomVariables, ArtifactBucket, Value]
+                      Path: !FindInMap [CustomVariables, ArtifactPrefix, Value]
+
+Outputs:
+
+    PipelineUrl:
+        Description: >
+            Monitor the pipeline URL to see when the application has been fully
+            built and deployed.
+        Value: !Sub "https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${EnvironmentName}"
+
+    SearchPageUrl:
+        Description: >
+            The application will be available in this URL once the pipeline deploys it.
+        Value: !Sub "http://${ALB.Outputs.LoadBalancerUrl}/"
+        Export:
+            Name: !Sub "${EnvironmentName}-SearchPageServiceUrl"
+
+    JupyterURL:
+        Description: Open Jupyter on your new PySpark/EMR cluster
+        Value: !GetAtt JupyterSpark.Outputs.JupyterURL

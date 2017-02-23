@@ -1,0 +1,41 @@
+# this docker-compose file is meant to be run with the make command
+# to source the environment. Otherwise, set the required env variables
+version: '2'
+services:
+  aws-es-kibana:
+    image: "${ENV_NAME}/aws-es-kibana:${ENV_VERSION}"
+    build: ./aws-es-kibana
+    environment:
+      AWS_ACCESS_KEY_ID:
+      AWS_SECRET_ACCESS_KEY:
+      ES_ENDPOINT:
+
+  kibana:
+    image: "${ENV_NAME}/kibana:${ENV_VERSION}"
+    build: ./kibana
+    restart: always
+    depends_on:
+      - aws-es-kibana
+    links:
+      - aws-es-kibana
+
+  webapp:
+    image: "${ENV_NAME}/webapp:${ENV_VERSION}"
+    build: ./webapp
+    restart: always
+    command: [npm, run, dev]
+    volumes:
+      - "${VOLUME_DIR}:/usr/src/app"
+
+  proxy:
+    image: "${ENV_NAME}/nginx:${ENV_VERSION}"
+    build: ./nginx
+    restart: always
+    depends_on:
+      - kibana
+      - webapp
+    links:
+      - kibana
+      - webapp
+    ports:
+      - "127.0.0.1:${LOCAL_PROXY_PORT}:80"
