@@ -1,8 +1,7 @@
-# Building a Dynamic Search Dashboard for Loosely Coupled Data Sets on AWS
+# Harmonize, Search, and Analyze Loosely Coupled Datasets on AWS
 
 This repository contains the source code of the
-[Harmonize, Search, and Analyze Loosely Coupled Data Sets on
-AWS](https://aws.amazon.com/blogs/big-data/harmonize-search-and-analyze-loosely-coupled-datasets-on-aws/)
+[Harmonize, Search, and Analyze Loosely Coupled Datasets on AWS](https://aws.amazon.com/blogs/big-data/harmonize-search-and-analyze-loosely-coupled-datasets-on-aws/)
 blog post. It is a set of CloudFormation templates and tools
 for deploying a data harmonization and search application
 which uses sample data from the [Public Safety Open Data
