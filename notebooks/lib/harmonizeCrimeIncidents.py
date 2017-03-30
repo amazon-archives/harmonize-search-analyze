@@ -424,8 +424,9 @@ class harmonizeCrimeIncidents(object):
     def executeAthenaDDL(self, athena_s3_staging_dir, ddlList):
         if type(ddlList) is not list:
             ddlList = [ddlList]
+        athena_url="jdbc:awsathena://athena.{0}.amazonaws.com:443".format(os.environ['AWS_DEFAULT_REGION'])
         conn = jaydebeapi.connect('com.amazonaws.athena.jdbc.AthenaDriver',
-                                   'jdbc:awsathena://athena.us-east-1.amazonaws.com:443',
+                                   athena_url,
                                    {
                                        "aws_credentials_provider_class":"com.amazonaws.auth.InstanceProfileCredentialsProvider",
                                        "s3_staging_dir":athena_s3_staging_dir,
