@@ -40,7 +40,8 @@ VPATH := $(OUT)
 all: build
 .PHONY: all
 
-upload: upload-templates upload-emr-files upload-src-zip
+upload: upload-templates upload-emr-files upload-src-zip \
+	 upload-config-env
 .PHONY: upload
 
 upload-templates: upload-master-template upload-ref-arch-templates \
@@ -58,6 +59,12 @@ upload-master-template: $(MASTER_TEMPLATE) | $(OUT)
 	@echo "[INFO] uploading master template"
 	aws s3 cp --acl public-read \
 		$(MASTER_TEMPLATE) "s3://$(ENV_BUCKET_PATH)/infrastructure/master.yaml" | \
+		tee -a $(OUT)/$(@)
+
+upload-config-env: $(CONFIG_ENV) | $(OUT)
+	@echo "[INFO] uploading environment config file"
+	aws s3 cp --acl public-read \
+		$(?) "s3://$(ENV_BUCKET_PATH)/build/config.env" | \
 		tee -a $(OUT)/$(@)
 
 upload-ref-arch-templates: $(ECS_REF_ARCH_TEMPLATES) | $(OUT)

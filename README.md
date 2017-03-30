@@ -103,9 +103,10 @@ directory of the project.
 1. Modify the [master.yaml](master.yaml) template to point
 to your own S3 bucket. Please note that the S3 bucket must have
 [versioning](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html)
-enabled for CodePipeline to work. The bucket and path are configured by
-the `ArtifactBucket` and `ArtifactPrefix` variables under the `Mappings`
-section of the template.
+enabled for CodePipeline to work. Additionally, the bucket must be in
+the same region as the CloudFormation stack. The bucket and path are
+configured by the `ArtifactBucket` and `ArtifactPrefix` variables under
+the `Mappings` section of the template.
 2. Modify the variables in the local build environment file:
 [build/config.env](build/config.env). These variables control the build
 environment and web application deployment. In specific, you should
@@ -116,14 +117,18 @@ modify the following variables:
        used when launching the CloudFormation stack
      - `ENV_VERSION`: you should bump the version variable everytime you make
      changes to the web application source to cause a new ECS deployment
-3. Upload files to your S3 bucket. The [build](build) directory under
-the root of the repo contains a `Makefile` that can be used to build
-the artifacts and upload the files into your S3 bucket. It uses the
-[aws cli](https://aws.amazon.com/cli/) to upload to S3. To upload the
-files to your s3 bucket, issue the following commands (from the root of
-the repository):
+3. Upload the files to your S3 bucket. The [build](build) directory
+under the root of the repo contains a `Makefile` that can be used to
+build the artifacts and upload the files into your S3 bucket. It uses the
+[aws cli](https://aws.amazon.com/cli/) to upload to S3. The `Makefile`
+uploads a zip file (from `git archive`) of your local repository to S3
+so you should commit any local changes before uploading.
+
+To upload the files to your s3 bucket, issue the following commands
+(from the root of the repository):
 
 ```shell
+# git commit any pending changes in the local repo prior to upload
 $ cd build
 $ make upload # requires properly configured aws cli
 ```
@@ -170,7 +175,11 @@ be up and running. Additionally, you need the aws cli configured with
 credentials having permissions to obtain the Elasticsearch endpoint from
 CloudFormation and to make requests to the Elasticsearch cluster.
 
-This environment runs the web application using
+If the CloudFormation stack was deployed to a region different than the
+default one (us-east-1), you should set the `AWS_DEFAULT_REGION` variable
+in the [build/config.env](build/config.env) file to the right AWS region.
+
+The local development environment runs the web application using
 [webpack-dev-server](https://webpack.github.io/docs/webpack-dev-server.html)
 from the *webapp* container. It mounts the
 *webapp* source directory from the host to allow
@@ -183,8 +192,8 @@ To run the discovery web application on a workstation, issue the
 following commands:
 
 ```shell
-    $ cd services
-    $ make up
+$ cd services
+$ make up
 ```
 
 ## Cleanup the CloudFormation stacks?
