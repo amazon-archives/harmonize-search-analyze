@@ -54,20 +54,16 @@ upload-emr-files: upload-notebooks upload-emr-bootstrap
 $(OUT):
 	mkdir -p $(@)
 
-# pull and init the ECS Reference Architecture submodule
-$(ECS_REF_ARCH_DIR): | $(OUT)
-	@echo "[INFO] cloning ecs reference architecture"
-	git submodule update --init $(@) | tee $(OUT)/$(@)
-
-$(ECS_REF_ARCH_TEMPLATES): $(ECS_REF_ARCH_DIR)
-
 upload-master-template: $(MASTER_TEMPLATE) | $(OUT)
 	@echo "[INFO] uploading master template"
 	aws s3 cp --acl public-read \
 		$(MASTER_TEMPLATE) "s3://$(ENV_BUCKET_PATH)/infrastructure/master.yaml" | \
 		tee -a $(OUT)/$(@)
 
-upload-ref-arch-templates: $(ECS_REF_ARCH_TEMPLATES)
+upload-ref-arch-templates: $(ECS_REF_ARCH_TEMPLATES) | $(OUT)
+	@[ -d $(ECS_REF_ARCH_DIR)/infrastructure ] || \
+		echo "[INFO] cloning ecs reference architecture" ; \
+		git submodule update --init $(ECS_REF_ARCH_DIR)
 	@echo "[INFO] uploading ecs reference architecture templates"
 	aws s3 sync --acl public-read  --exclude "*" --include "*.yaml" \
 		$(ECS_REF_ARCH_DIR)/infrastructure "s3://$(ENV_BUCKET_PATH)/infrastructure" | \

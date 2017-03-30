@@ -1,15 +1,15 @@
-# Building a Dynamic Search Dashboard for Loosely Coupled Data Sets on AWS
+# Harmonize, Search, and Analyze Loosely Coupled Datasets on AWS
 
-This repository contains the artifacts of the
-[Harmonize, Search, and Analyze Loosely Coupled Data Sets on
-AWS](https://aws.amazon.com/blogs/big-data/harmonize-search-and-analyze-loosely-coupled-data-sets-on-aws/)
+This repository contains the source code of the
+[Harmonize, Search, and Analyze Loosely Coupled Datasets on AWS](https://aws.amazon.com/blogs/big-data/harmonize-search-and-analyze-loosely-coupled-datasets-on-aws/)
 blog post. It is a set of CloudFormation templates and tools
 for deploying a data harmonization and search application
-which uses uses sample data from the [Public Safety Open Data
+which uses sample data from the [Public Safety Open Data
 Portal](https://publicsafetydataportal.org/all-data/).
 
-You can launch this CloudFormation stack in the US East (N. Virginia)
-Region in your account:
+Click this CloudFormation button to launch your own copy of the
+sample application in the us-east-1 (N. Virginia) AWS region:
+
 [![cloudformation-launch-stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=datasearch-blog&templateURL=https://s3.amazonaws.com/aws-bigdata-blog/artifacts/harmonize-search-analyze/infrastructure/master.yaml)
 
 ## Overview
@@ -100,17 +100,20 @@ directory of the project.
 
 ## Deploy Using My Own S3 Bucket
 
-1. Modify the [master.yaml](master.yaml) template to point to your own
-S3 bucket. The bucket and path are configured by the `ArtifactBucket` and
-`ArtifactPrefix` variables under the `Mappings` section of the template.
+1. Modify the [master.yaml](master.yaml) template to point
+to your own S3 bucket. Please note that the S3 bucket must have
+[versioning](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html)
+enabled for CodePipeline to work. The bucket and path are configured by
+the `ArtifactBucket` and `ArtifactPrefix` variables under the `Mappings`
+section of the template.
 2. Modify the variables in the local build environment file:
 [build/config.env](build/config.env). These variables control the build
 environment and web application deployment. In specific, you should
 modify the following variables:
      - `ENV_BUCKET_PATH`: point it to your own bucket and prefix merged
        together as the path to the artifacts (same as step 1)
-     - `ENV_NAME`: make it the same as the `EnvironmentName` used in the
-     CloudFormation stack
+     - `ENV_NAME`: make it the same as the `EnvironmentName` parameter
+       used when launching the CloudFormation stack
      - `ENV_VERSION`: you should bump the version variable everytime you make
      changes to the web application source to cause a new ECS deployment
 3. Upload files to your S3 bucket. The [build](build) directory under
@@ -120,19 +123,23 @@ the artifacts and upload the files into your S3 bucket. It uses the
 files to your s3 bucket, issue the following commands (from the root of
 the repository):
 
-    $ cd build
-    $ make upload # requires properly configured aws cli
+```shell
+$ cd build
+$ make upload # requires properly configured aws cli
+```
 
 ## Build a Stand-Alone Version of the Web Application
 
 The front-end part of the web application (html, JavaScript and css) can
 be built and packaged so that it can be deployed separately in a different
-web server. The application build environment and dependecies are managed
-using [npm](https://www.npmjs.com/). Here are the steps to build it:
+web server. The application build environment and dependencies are managed
+using [npm](https://www.npmjs.com/). Here are the commands to build it:
 
-    $ cd services/webapp
-    $ npm install
-    $ npm build
+```shell
+$ cd services/webapp
+$ npm install
+$ npm build
+```
 
 The application is built and bundled using
 [webpack](https://webpack.github.io/). The output files of the build
@@ -142,8 +149,9 @@ JavaScript and CSS files which can be added to your web application.
 Please note that moving it to a
 different web server may require configuring
 [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS)
-and changing the webpack configuration in the
-[webpack.config.js](services/webapp/webpack.config.js) file.
+and changing the `publicPath` variable in the webpack configuration file
+([webpack.config.js](services/webapp/webpack.config.js)) to point
+it to the right URL path in the web server.
 
 ## Run the Web Application on a Development Workstation
 
@@ -167,15 +175,17 @@ This environment runs the web application using
 from the *webapp* container. It mounts the
 *webapp* source directory from the host to allow
 [hot-module-replacement](https://webpack.github.io/docs/hot-module-replacement.html).
-Depending on your Docker configuration, you may need to set the
-`VOLUME_DIR` environment variable to point to the source directory that
-will be mounted in the container.
+Depending on your Docker configuration, you may need to configure Docker
+so that the `webapp` directory is available to be mounted by containers
+and point the `WEBAPP_DIR` environment variable to the directory.
 
 To run the discovery web application on a workstation, issue the
 following commands:
 
+```shell
     $ cd services
     $ make up
+```
 
 ## Cleanup the CloudFormation stacks?
 
@@ -189,7 +199,27 @@ Resources](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/templat
 to facilitate cleaning up the resources.
 
 The environment retains the EMR logs S3 bucket in case you need
-to troubleshoot it. You should manually remove this bucket
-if you don't want to keep this data. The name of this bucket is:
-datasearch-blog-jupyterspark-\<ID\> (assuming default stack name was
-used).
+to troubleshoot it. You should manually remove this bucket if
+you don't want to keep this data. The name of this bucket is:
+`datasearch-blog-jupyterspark-<ID>` (assuming default stack name
+was used).
+
+## Contributing
+
+Please [create a new GitHub
+issue](https://github.com/awslabs/harmonize-search-analyze/issues/new)
+for any feature requests, bugs, or documentation improvements.
+
+Where possible, please also [submit a pull
+request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/)
+for the change.
+
+## License
+
+Copyright 2011-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
+
+[http://aws.amazon.com/apache2.0/](http://aws.amazon.com/apache2.0/)
+
+or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
