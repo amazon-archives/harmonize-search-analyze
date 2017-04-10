@@ -25,7 +25,7 @@ NOTEBOOK_FILES += $(wildcard $(NOTEBOOK_LIB_DIR)/*.py)
 
 # EMR boostrap scripts
 EMR_BOOTSTRAP_DIR := ../infrastructure/emr-bootstrap
-EMR_BOOTSTRAP_FILES := $(wildcard $(BOOTSTRAP_DIR)/*.sh)
+EMR_BOOTSTRAP_FILES := $(wildcard $(EMR_BOOTSTRAP_DIR)/*.sh)
 
 # files in this repo - used to upload src artifact to s3 for codebuild
 SRC_FILES := $(shell git ls-files ..)
