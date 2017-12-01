@@ -433,7 +433,7 @@ class harmonizeCrimeIncidents(object):
                                        "log_path":"/tmp/athenajdbc.log",
                                        "log_level":"TRACE"
                                    },
-                                   '/usr/lib/athena/AthenaJDBC41-1.0.0.jar')
+                                   '/usr/lib/athena/AthenaJDBC41-1.1.0.jar')
         for ddl in ddlList:
             print("Exectuting Athena DDL: {0}".format(ddl))
             stmt = conn.jconn.createStatement()
