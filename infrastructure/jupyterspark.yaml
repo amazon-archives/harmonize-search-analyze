@@ -247,7 +247,7 @@ Resources:
         - Classification: export
           ConfigurationProperties:
             S3_SCRATCH_BUCKET: !Ref EMRBucket
-            CLASSPATH: "/usr/lib/athena/AthenaJDBC41-1.1.0.jar:/usr/lib/hadoop-mapreduce/aws-java-sdk-core-1.11.183.jar:/usr/lib/hadoop-mapreduce/jackson-databind-2.6.5.jar:/usr/lib/hadoop-mapreduce/jackson-core-2.6.5.jar:/usr/lib/hadoop/client/commons-logging.jar:/usr/lib/hadoop-mapreduce/jackson-annotations-2.6.5.jar:/usr/lib/hadoop-mapreduce/joda-time-2.8.1.jar"
+            CLASSPATH: "/usr/lib/athena/AthenaJDBC41-1.1.0.jar:/usr/lib/hadoop-mapreduce/aws-java-sdk-core-1.11.183.jar:/usr/lib/hadoop-mapreduce/jackson-databind-2.6.7.jar:/usr/lib/hadoop-mapreduce/jackson-core-2.6.7.jar:/usr/lib/hadoop/client/commons-logging.jar:/usr/lib/hadoop-mapreduce/jackson-annotations-2.6.7.jar:/usr/lib/hadoop-mapreduce/joda-time-2.8.1.jar"
       Instances:
         AdditionalMasterSecurityGroups:
         - Fn::GetAtt:
