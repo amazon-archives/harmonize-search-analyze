@@ -210,6 +210,8 @@ Resources:
       - Name: Install-Kibana-Index
         ScriptBootstrapAction:
           Path: !Sub "s3://${BootstrapBucketPath}/infrastructure/emr-bootstrap/emr_load_kibana_index.sh"
+          Args:
+          - Ref: EsEndpoint
       - Name: Copy-Athena-JDBC-Jar
         ScriptBootstrapAction:
           Path: file:/usr/bin/sudo

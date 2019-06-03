@@ -7,6 +7,9 @@
 #
 ##########################################################################
 
+ES_ENDPOINT=$1
+
+      
 if grep isMaster /mnt/var/lib/info/instance.json | grep true;
 then
 
@@ -16,8 +19,9 @@ then
 	# Load the index data
 	/usr/bin/n use stable /usr/bin/elasticdump \
 	   --input=/home/hadoop/datasearch-blog/kibana-content/kibana-exported-visualizations.json \
-	   --output=http://localhost:9200/.kibana \
-	   --type=data
+	   --output=http://${ES_ENDPOINT}/.kibana \
+	   --type=data \
+	   --awsChain
 
 else
     echo "Slave node - skip elasticdump / kibana index installation"

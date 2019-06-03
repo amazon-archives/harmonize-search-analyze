@@ -106,7 +106,9 @@ function install_es_proxy() {
   fi
 
   # install node.js
-  [ -f /usr/bin/node ] || yum -y install nodejs npm --enablerepo=epel || {
+  yum install -y gcc-c++ make
+  curl -sL https://rpm.nodesource.com/setup_10.x | sudo -E bash -
+  [ -f /usr/bin/node ] || yum -y install nodejs || {
     echo "$0 - [ERROR] failed to node.js" >&2
     exit 1
   }
@@ -119,6 +121,7 @@ function install_es_proxy() {
   # configure npm to use http (rather than https) to avoid intermittent hangs 
   # seen during package installations (https://github.com/npm/npm/issues/7862)
   npm config set registry http://registry.npmjs.org
+  npm config set strict-ssl false
 
   # install aws-es-kibana
   [ -f /usr/bin/aws-es-kibana ] || npm install "aws-es-kibana@1.0.5" -g --verbose || {
