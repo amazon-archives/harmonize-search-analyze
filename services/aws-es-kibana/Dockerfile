@@ -1,6 +1,7 @@
 FROM node:latest
 
 RUN npm install aws-es-kibana -g
+RUN mkdir -p /root/.aws && touch /root/.aws/credentials
 
 EXPOSE 9200
 
